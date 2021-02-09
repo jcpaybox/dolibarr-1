@@ -265,7 +265,15 @@ if (!empty($conf->paypal->enabled))
 
 if (!empty($conf->paybox->enabled))
 {
-	if ($paymentmethod == 'paybox') $ispaymentok = true; // We call this page only if payment is ok on payment system
+	if ($paymentmethod == 'paybox') {
+			$ispaymentok 		= true; // We call this page only if payment is ok on payment system
+			$ipaddress       	= GETPOST('ip');
+			$TRANSACTIONID   	= GETPOST('trans');
+			$FinalPaymentAmt 	= GETPOST('montant');
+			$paymentType     	= 'CB';	
+			$currencyCodeType   = GETPOST('devise');	
+			
+	}
 }
 
 if (!empty($conf->stripe->enabled))
@@ -335,7 +343,7 @@ if ($ispaymentok)
 				$paymentTypeId = dol_getIdFromCode($db, $paymentType, 'c_paiement', 'code', 'id', 1);
 			}
 
-			$currencyCodeType = $_SESSION['currencyCodeType'];
+			if (empty($currencyCodeType))$currencyCodeType = $_SESSION['currencyCodeType'];
 
 			dol_syslog("FinalPaymentAmt=".$FinalPaymentAmt." paymentTypeId=".$paymentTypeId, LOG_DEBUG, 0, '_payment');
 
@@ -633,12 +641,12 @@ if ($ispaymentok)
 			if ($paymentmethod == 'stripe') $paymentTypeId = $conf->global->STRIPE_PAYMENT_MODE_FOR_PAYMENTS;
 			if (empty($paymentTypeId))
 			{
-				$paymentType = $_SESSION["paymentType"];
+				if (empty($paymentType)) $paymentType = $_SESSION["paymentType"];
 				if (empty($paymentType)) $paymentType = 'CB';
 				$paymentTypeId = dol_getIdFromCode($db, $paymentType, 'c_paiement', 'code', 'id', 1);
 			}
 
-			$currencyCodeType = $_SESSION['currencyCodeType'];
+			if (empty($currencyCodeType))$currencyCodeType = $_SESSION['currencyCodeType'];
 
 			// Do action only if $FinalPaymentAmt is set (session variable is cleaned after this page to avoid duplicate actions when page is POST a second time)
 			if (!empty($FinalPaymentAmt) && $paymentTypeId > 0)
@@ -649,6 +657,7 @@ if ($ispaymentok)
 				include_once DOL_DOCUMENT_ROOT.'/compta/paiement/class/paiement.class.php';
 				$paiement = new Paiement($db);
 				$paiement->datepaye = $now;
+				if ($paymentmethod == 'paybox') $FinalPaymentAmt=price($FinalPaymentAmt/100);
 				if ($currencyCodeType == $conf->currency)
 				{
 					$paiement->amounts = array($object->id => $FinalPaymentAmt); // Array with all payments dispatching with invoice id
